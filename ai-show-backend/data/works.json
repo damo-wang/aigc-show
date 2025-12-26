@@ -1,0 +1,41 @@
+[
+  {
+    "id": "work_001",
+    "type": "image",
+    "title": "赛博朋克城市",
+    "description": "使用 Stable Diffusion 生成的赛博朋克风格城市夜景。",
+    "tags": ["图片", "赛博朋克", "科幻"],
+    "cover": "/public/images/cyber_city_cover.jpg",
+    "content": {
+      "images": [
+        "/public/images/cyber_city_1.jpg",
+        "/public/images/cyber_city_2.jpg"
+      ]
+    },
+    "createdAt": "2025-01-01T12:00:00Z"
+  },
+  {
+    "id": "work_002",
+    "type": "novel",
+    "title": "火星上的最后一间酒馆",
+    "description": "AI 生成的短篇科幻小说。",
+    "tags": ["小说", "科幻"],
+    "cover": "/public/images/mars_bar_cover.jpg",
+    "content": {
+      "file": "/public/novels/mars_bar.md"
+    },
+    "createdAt": "2025-01-02T10:00:00Z"
+  },
+  {
+    "id": "work_003",
+    "type": "game",
+    "title": "方块躲避",
+    "description": "用方向键控制方块躲避障碍的小游戏。",
+    "tags": ["游戏", "益智"],
+    "cover": "/public/images/block_dodge_cover.png",
+    "content": {
+      "playUrl": "/public/games/block_dodge/index.html"
+    },
+    "createdAt": "2025-01-03T09:00:00Z"
+  }
+]

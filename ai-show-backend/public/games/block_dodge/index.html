@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <title>方块躲避</title>
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #eee;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      margin: 16px 0 8px;
+    }
+    #info {
+      margin-bottom: 8px;
+      font-size: 14px;
+      opacity: 0.8;
+    }
+    canvas {
+      border: 2px solid #555;
+      background: #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>方块躲避</h1>
+  <div id="info">方向键 ← → 移动，躲避从上方掉落的障碍物。</div>
+  <canvas id="game" width="800" height="600"></canvas>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const WIDTH = canvas.width;
+    const HEIGHT = canvas.height;
+
+    const player = {
+      x: WIDTH / 2 - 20,
+      y: HEIGHT - 60,
+      w: 40,
+      h: 40,
+      speed: 6
+    };
+
+    const obstacles = [];
+    let keys = {};
+    let lastSpawn = 0;
+    let spawnInterval = 900; // 毫秒
+    let lastTime = 0;
+    let running = true;
+    let score = 0;
+    let startTime = performance.now();
+
+    window.addEventListener("keydown", (e) => {
+      keys[e.key] = true;
+      if (!running && e.key === "Enter") {
+        resetGame();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.key] = false;
+    });
+
+    function resetGame() {
+      obstacles.length = 0;
+      player.x = WIDTH / 2 - 20;
+      score = 0;
+      startTime = performance.now();
+      lastSpawn = 0;
+      running = true;
+      spawnInterval = 900;
+      requestAnimationFrame(loop);
+    }
+
+    function spawnObstacle() {
+      const w = 40 + Math.random() * 80;
+      const x = Math.random() * (WIDTH - w);
+      const speed = 2 + Math.random() * 3;
+      obstacles.push({
+        x,
+        y: -50,
+        w,
+        h: 20 + Math.random() * 30,
+        speed
+      });
+    }
+
+    function update(dt) {
+      // 控制玩家移动
+      if (keys["ArrowLeft"] || keys["a"]) {
+        player.x -= player.speed;
+      }
+      if (keys["ArrowRight"] || keys["d"]) {
+        player.x += player.speed;
+      }
+
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.w > WIDTH) player.x = WIDTH - player.w;
+
+      // 生成障碍物
+      lastSpawn += dt;
+      if (lastSpawn >= spawnInterval) {
+        spawnObstacle();
+        lastSpawn = 0;
+
+        // 随着时间推移加快节奏
+        if (spawnInterval > 400) {
+          spawnInterval -= 10;
+        }
+      }
+
+      // 更新障碍物位置
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const ob = obstacles[i];
+        ob.y += ob.speed;
+
+        // 碰撞检测
+        if (
+          ob.x < player.x + player.w &&
+          ob.x + ob.w > player.x &&
+          ob.y < player.y + player.h &&
+          ob.y + ob.h > player.y
+        ) {
+          running = false;
+        }
+
+        // 超出屏幕删除
+        if (ob.y > HEIGHT + 50) {
+          obstacles.splice(i, 1);
+        }
+      }
+
+      // 更新分数
+      score = Math.floor((performance.now() - startTime) / 100);
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, WIDTH, HEIGHT);
+
+      // 背景网格
+      ctx.strokeStyle = "#222";
+      ctx.lineWidth = 1;
+      for (let x = 0; x < WIDTH; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, HEIGHT);
+        ctx.stroke();
+      }
+      for (let y = 0; y < HEIGHT; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(WIDTH, y);
+        ctx.stroke();
+      }
+
+      // 玩家
+      ctx.fillStyle = "#4caf50";
+      ctx.fillRect(player.x, player.y, player.w, player.h);
+
+      // 障碍物
+      ctx.fillStyle = "#f44336";
+      obstacles.forEach((ob) => {
+        ctx.fillRect(ob.x, ob.y, ob.w, ob.h);
+      });
+
+      // 分数
+      ctx.fillStyle = "#fff";
+      ctx.font = "16px monospace";
+      ctx.fillText("Score: " + score, 10, 24);
+
+      if (!running) {
+        ctx.fillStyle = "rgba(0,0,0,0.6)";
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "32px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("游戏结束", WIDTH / 2, HEIGHT / 2 - 20);
+        ctx.font = "20px sans-serif";
+        ctx.fillText("最终得分：" + score, WIDTH / 2, HEIGHT / 2 + 15);
+        ctx.fillText("按 Enter 键重新开始", WIDTH / 2, HEIGHT / 2 + 45);
+        ctx.textAlign = "start";
+      }
+    }
+
+    function loop(timestamp) {
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+
+      if (running) {
+        update(dt);
+        draw();
+        requestAnimationFrame(loop);
+      } else {
+        draw();
+      }
+    }
+
+    // 启动游戏
+    resetGame();
+  </script>
+</body>
+</html>
