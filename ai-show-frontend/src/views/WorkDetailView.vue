@@ -1,73 +1,246 @@
 <template>
-  <div v-if="work">
-    <h2>{{ work.title }}</h2>
-    <p>{{ work.description }}</p>
-    <p>
-      标签：
-      <span v-for="tag in work.tags" :key="tag">{{ tag }} </span>
-    </p>
+  <div class="page">
+    <div class="page-inner">
+      <button class="back-btn" @click="goBack">
+        ← 返回列表
+      </button>
 
-    <div v-if="work.type === 'image'">
-      <div v-for="(img, idx) in work.content.images" :key="idx">
-        <img :src="img" class="image" />
+      <div v-if="loading" class="status-text">正在加载作品详情…</div>
+      <div v-else-if="error" class="status-text error">加载失败：{{ error }}</div>
+      <div v-else-if="!work" class="status-text">未找到该作品。</div>
+
+      <div v-else class="detail">
+        <header class="detail-header">
+          <h1 class="detail-title">{{ work.title }}</h1>
+          <p class="detail-desc">{{ work.description }}</p>
+          <div class="detail-tags">
+            <span v-for="tag in work.tags" :key="tag" class="tag">
+              {{ tag }}
+            </span>
+          </div>
+        </header>
+
+        <section v-if="work.type === 'image'" class="detail-section">
+          <div
+            v-for="(img, idx) in work.content?.images || []"
+            :key="idx"
+            class="image-wrap"
+          >
+            <img :src="img" class="image" alt="作品图片" />
+          </div>
+        </section>
+
+        <section v-else-if="work.type === 'novel'" class="detail-section">
+          <div v-if="novelLoading" class="status-text">小说内容加载中…</div>
+          <div v-else-if="novelError" class="status-text error">
+            小说加载失败：{{ novelError }}
+          </div>
+          <pre v-else class="novel-text">{{ novelText }}</pre>
+        </section>
+
+        <section v-else-if="work.type === 'game'" class="detail-section">
+          <div class="game-wrapper">
+            <iframe
+              v-if="work.content?.playUrl"
+              :src="work.content.playUrl"
+              class="game-frame"
+              frameborder="0"
+              allowfullscreen
+            ></iframe>
+          </div>
+          <p class="game-hint">
+            提示：可在 PC 浏览器中体验更佳效果。
+          </p>
+        </section>
       </div>
     </div>
-
-    <div v-else-if="work.type === 'novel'">
-      <pre class="novel-text" v-if="novelText">{{ novelText }}</pre>
-      <p v-else>小说加载中...</p>
-    </div>
-
-    <div v-else-if="work.type === 'game'">
-      <iframe
-        v-if="work.content.playUrl"
-        :src="work.content.playUrl"
-        class="game-frame"
-        frameborder="0"
-      ></iframe>
-    </div>
-  </div>
-  <div v-else>
-    <p>加载中...</p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
 
 const route = useRoute();
-const work = ref(null);
-const novelText = ref("");
+const router = useRouter();
 
-onMounted(async () => {
-  const res = await axios.get(`/api/works/${route.params.id}`);
-  if (res.data.success) {
-    work.value = res.data.data;
-    // 如果是小说，拉取小说文件
-    if (work.value.type === "novel" && work.value.content?.file) {
-      const txt = await fetch(work.value.content.file).then((r) =>
-        r.text()
-      );
-      novelText.value = txt;
+const work = ref(null);
+const loading = ref(false);
+const error = ref("");
+
+const novelText = ref("");
+const novelLoading = ref(false);
+const novelError = ref("");
+
+const fetchWork = async () => {
+  loading.value = true;
+  error.value = "";
+  try {
+    const res = await axios.get(`/api/works/${route.params.id}`);
+    if (res.data.success) {
+      work.value = res.data.data;
+      if (work.value.type === "novel" && work.value.content?.file) {
+        await fetchNovel(work.value.content.file);
+      }
+    } else {
+      error.value = res.data.message || "未知错误";
     }
+  } catch (e) {
+    error.value = e?.message || "请求失败";
+  } finally {
+    loading.value = false;
   }
-});
+};
+
+const fetchNovel = async (filePath) => {
+  novelLoading.value = true;
+  novelError.value = "";
+  try {
+    // filePath 形如 "/public/novels/xxx.md"
+    const res = await fetch(filePath);
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const txt = await res.text();
+    novelText.value = txt;
+  } catch (e) {
+    novelError.value = e?.message || "小说请求失败";
+  } finally {
+    novelLoading.value = false;
+  }
+};
+
+const goBack = () => {
+  router.back();
+};
+
+onMounted(fetchWork);
 </script>
 
 <style scoped>
-.image {
-  max-width: 800px;
-  display: block;
+.page {
+  min-height: 100vh;
+}
+
+.page-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 24px 16px 40px;
+}
+
+.back-btn {
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 0;
   margin-bottom: 12px;
 }
-.game-frame {
-  width: 800px;
-  height: 600px;
+
+.back-btn:hover {
+  color: #111827;
 }
+
+.status-text {
+  font-size: 14px;
+  color: #6b7280;
+  padding: 16px 0;
+}
+
+.status-text.error {
+  color: #b91c1c;
+}
+
+.detail {
+  background: transparent;
+}
+
+.detail-header {
+  margin-bottom: 16px;
+}
+
+.detail-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.detail-desc {
+  margin: 8px 0 10px;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #4338ca;
+}
+
+.detail-section {
+  margin-top: 12px;
+}
+
+/* 图片展示 */
+.image-wrap {
+  margin-bottom: 12px;
+}
+
+.image {
+  width: 100%;
+  max-width: 960px;
+  display: block;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+}
+
+/* 小说展示 */
 .novel-text {
   white-space: pre-wrap;
-  font-family: inherit;
+  font-family: "SF Pro Text", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  line-height: 1.7;
+  font-size: 15px;
+  background: #ffffff;
+  padding: 18px 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  max-width: 780px;
+}
+
+/* 游戏展示：自适应比例盒子 */
+.game-wrapper {
+  width: 100%;
+  max-width: 960px;
+  margin-top: 8px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+  position: relative;
+  padding-top: 75%; /* 4:3 比例，需要更扁可改为 56.25% (16:9) */
+}
+
+.game-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.game-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #6b7280;
 }
 </style>
