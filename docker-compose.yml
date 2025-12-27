@@ -2,6 +2,8 @@ services:
   backend:
     build: ./ai-show-backend
     container_name: ai-backend
+    environment:
+      - ADMIN_TOKEN=5fA29cG8QbR7N4xT6Vw0pJ2yZ9mE3hD1sK7uB4tQ6rM8cL2d
     networks:
       - aigc-net
 

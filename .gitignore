@@ -25,3 +25,6 @@ ai-show-backend/*.log
 .vscode
 .DS_Store
 Thumbs.db
+
+# other
+temp/
