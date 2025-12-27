@@ -5,9 +5,9 @@
         ← 返回列表
       </button>
 
-      <div v-if="loading" class="status-text">正在加载作品详情…</div>
-      <div v-else-if="error" class="status-text error">加载失败：{{ error }}</div>
-      <div v-else-if="!work" class="status-text">未找到该作品。</div>
+      <div v-if="loading" class="status-text">Loading work details…</div>
+      <div v-else-if="error" class="status-text error">Failed: {{ error }}</div>
+      <div v-else-if="!work" class="status-text">Work not found.</div>
 
       <div v-else class="detail">
         <header class="detail-header">
@@ -26,12 +26,12 @@
             :key="idx"
             class="image-wrap"
           >
-            <img :src="img" class="image" alt="作品图片" />
+            <img :src="img" class="image" alt="image" />
           </div>
         </section>
 
         <section v-else-if="work.type === 'novel'" class="detail-section">
-          <div v-if="novelLoading" class="status-text">小说内容加载中…</div>
+          <div v-if="novelLoading" class="status-text">Loading story…</div>
           <div v-else-if="novelError" class="status-text error">
             小说加载失败：{{ novelError }}
           </div>
@@ -49,7 +49,7 @@
             ></iframe>
           </div>
           <p class="game-hint">
-            提示：可在 PC 浏览器中体验更佳效果。
+            Tip: Best experienced on desktop browser.
           </p>
         </section>
       </div>
@@ -84,10 +84,10 @@ const fetchWork = async () => {
         await fetchNovel(work.value.content.file);
       }
     } else {
-      error.value = res.data.message || "未知错误";
+      error.value = res.data.message || "Unknown error";
     }
   } catch (e) {
-    error.value = e?.message || "请求失败";
+    error.value = e?.message || "Request failed";
   } finally {
     loading.value = false;
   }
@@ -105,7 +105,7 @@ const fetchNovel = async (filePath) => {
     const txt = await res.text();
     novelText.value = txt;
   } catch (e) {
-    novelError.value = e?.message || "小说请求失败";
+    novelError.value = e?.message || "Story request failed";
   } finally {
     novelLoading.value = false;
   }

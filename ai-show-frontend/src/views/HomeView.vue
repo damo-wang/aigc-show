@@ -3,8 +3,8 @@
     <div class="page-inner">
       <header class="page-header">
         <div>
-          <h1 class="page-title">AI 创作展示平台（MVP）</h1>
-          <p class="page-subtitle">展示 AI 生成的图片、小说和小游戏作品</p>
+          <h1 class="page-title">AI Creative Showcase（MVP）</h1>
+          <p class="page-subtitle">A platform to display AI generated images, stories and mini-games</p>
         </div>
       </header>
 
@@ -20,13 +20,13 @@
       </div>
 
       <div v-if="loading" class="status-text">
-        正在加载作品…
+        Loading works…
       </div>
       <div v-else-if="error" class="status-text error">
-        加载失败：{{ error }}
+        Failed to load: {{ error }}
       </div>
       <div v-else-if="works.length === 0" class="status-text">
-        暂无作品，可以先在后端 data/works.json 中添加。
+        No works yet.
       </div>
 
       <div v-else class="work-list">
@@ -46,9 +46,9 @@ import axios from "axios";
 import WorkCard from "../components/WorkCard.vue";
 
 const types = [
-  { label: "图片", value: "image" },
-  { label: "小说", value: "novel" },
-  { label: "游戏", value: "game" }
+  { label: "Images", value: "image" },
+  { label: "Stories", value: "novel" },
+  { label: "Games", value: "game" }
 ];
 
 const currentType = ref("image");
@@ -66,10 +66,10 @@ const fetchWorks = async () => {
     if (res.data.success) {
       works.value = res.data.data;
     } else {
-      error.value = res.data.message || "未知错误";
+      error.value = res.data.message || "Unknown Error";
     }
   } catch (e) {
-    error.value = e?.message || "请求失败";
+    error.value = e?.message || "Request failed";
   } finally {
     loading.value = false;
   }
