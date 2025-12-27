@@ -59,6 +59,7 @@ const router = express.Router();
 router.use(requireAdmin);
 
 /**
+ * 仍然保留：
  * POST /api/admin/upload
  * form-data:
  *  - type: image|novel|game
@@ -103,6 +104,7 @@ router.post("/upload", upload.single("file"), (req, res) => {
 });
 
 /**
+ * 仍然保留：
  * POST /api/admin/works
  * JSON body:
  * {
@@ -144,5 +146,103 @@ router.post("/works", async (req, res) => {
     res.status(500).json({ success: false, message: "服务器错误" });
   }
 });
+
+/**
+ * 新增：
+ * POST /api/admin/works/upload-and-create
+ *
+ * form-data:
+ *  - type: image|novel|game
+ *  - title: string
+ *  - description: string
+ *  - tags: 逗号分隔字符串，如 "图片, 科幻"
+ *  - file: 上传文件
+ *
+ * 一次完成：文件上传 + 创建作品记录。
+ * 若写入 works.json 失败，会尝试删除刚刚上传的文件。
+ */
+router.post(
+  "/works/upload-and-create",
+  upload.single("file"),
+  async (req, res) => {
+    const { type, title, description, tags: tagsStr } = req.body;
+
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "缺少文件" });
+    }
+
+    if (!["image", "novel", "game"].includes(type)) {
+      // 删除刚才上传的文件
+      if (req.file?.path) {
+        fs.unlink(req.file.path).catch(() => {});
+      }
+      return res
+        .status(400)
+        .json({ success: false, message: "type 必须是 image|novel|game" });
+    }
+
+    if (!title || typeof title !== "string") {
+      if (req.file?.path) {
+        fs.unlink(req.file.path).catch(() => {});
+      }
+      return res
+        .status(400)
+        .json({ success: false, message: "title 必须是非空字符串" });
+    }
+
+    // 构造 URL
+    let subDir;
+    if (type === "image") subDir = "images/uploads";
+    else if (type === "novel") subDir = "novels/uploads";
+    else if (type === "game") subDir = "games/uploads";
+    const urlPath = `/public/${subDir}/${req.file.filename}`;
+
+    const tags =
+      typeof tagsStr === "string"
+        ? tagsStr
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : [];
+
+    let content = {};
+    let cover = urlPath;
+
+    if (type === "image") {
+      content = { images: [urlPath] };
+    } else if (type === "novel") {
+      content = { file: urlPath };
+    } else if (type === "game") {
+      content = { playUrl: urlPath };
+    }
+
+    try {
+      const newWork = await createWork({
+        type,
+        title,
+        description,
+        tags,
+        cover,
+        content
+      });
+
+      res.json({ success: true, data: newWork });
+    } catch (err) {
+      console.error(
+        "POST /api/admin/works/upload-and-create error:",
+        err
+      );
+
+      // 写入失败时删除文件，避免垃圾文件
+      if (req.file?.path) {
+        fs.unlink(req.file.path).catch(() => {});
+      }
+
+      res.status(500).json({ success: false, message: "服务器错误" });
+    }
+  }
+);
 
 export default router;
